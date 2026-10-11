@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# NestJS
+backend/dist/
+backend/coverage/
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/coverage/
+
+# Logs
+*.log
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+.idea/
+
+# TypeScript build cache
+*.tsbuildinfo
