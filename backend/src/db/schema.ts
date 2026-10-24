@@ -20,4 +20,10 @@ export const documents = pgTable('documents', {
   updatedAt: timestamp('updated_at', { withTimezone: true })
     .notNull()
     .defaultNow(),
+  originalFileName: varchar('original_file_name', { length: 255 }),
+  storageKey: varchar('storage_key', {
+    length: 255,
+  }).unique(),
+  mimeType: varchar('mime_type', { length: 100 }),
+  fileSize: integer('file_size'),
 });

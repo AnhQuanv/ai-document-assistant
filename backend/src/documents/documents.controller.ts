@@ -3,14 +3,23 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
+  ParseFilePipeBuilder,
   ParseUUIDPipe,
   Patch,
   Post,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { DocumentsService } from './documents.service.js';
 import { CreateDocumentDto } from './dto/create-document.dto.js';
 import { UpdateDocumentDto } from './dto/update-document.dto.js';
+import { FileInterceptor } from '@nestjs/platform-express';
+import type {} from 'multer';
+import { InitUploadDto } from './dto/init-upload.dto.js';
+import { CompleteUploadDto } from './dto/complete-upload.dto.js';
 
 @Controller('documents')
 export class DocumentsController {
@@ -42,5 +51,16 @@ export class DocumentsController {
   @Delete(':id')
   remove(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string) {
     return this.documentsService.delete(id);
+  }
+
+  @Post('uploads/init')
+  initUpload(@Body() data: InitUploadDto) {
+    return this.documentsService.initUpload(data);
+  }
+
+  @Post('uploads/complete')
+  @HttpCode(HttpStatus.OK)
+  completeUpload(@Body() data: CompleteUploadDto) {
+    return this.documentsService.completeUpload(data.documentId);
   }
 }
