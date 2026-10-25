@@ -1,0 +1,1 @@
+ALTER TABLE "documents" ADD CONSTRAINT "documents_storage_key_unique" UNIQUE("storage_key");
