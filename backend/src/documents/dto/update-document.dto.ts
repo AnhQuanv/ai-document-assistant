@@ -1,6 +1,8 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateDocumentDto } from './create-document.dto.js';
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 
-export class UpdateDocumentDto extends PartialType(CreateDocumentDto, {
-  skipNullProperties: false,
-}) {}
+export class UpdateDocumentDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(255)
+  title!: string;
+}

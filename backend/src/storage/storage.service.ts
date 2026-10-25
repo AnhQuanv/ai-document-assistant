@@ -4,6 +4,9 @@ import {
   S3Client,
   PutObjectCommand,
   HeadObjectCommand,
+  GetObject$,
+  GetObjectCommand,
+  DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
@@ -56,5 +59,24 @@ export class StorageService {
       mimeType: result.ContentType,
       etag: result.ETag,
     };
+  }
+
+  async createDownloadUrl(storageKey: string): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.bucket,
+      Key: storageKey,
+    });
+    return getSignedUrl(this.s3, command, {
+      expiresIn: 300,
+    });
+  }
+
+  async deleteFile(storageKey: string): Promise<void> {
+    const command = new DeleteObjectCommand({
+      Bucket: this.bucket,
+      Key: storageKey,
+    });
+
+    await this.s3.send(command);
   }
 }

@@ -22,6 +22,34 @@
       "when": 1792755681084,
       "tag": "0002_add_document_storage_metadata",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792841670774,
+      "tag": "0003_create_users",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792916411986,
+      "tag": "0004_create_auth_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792919740116,
+      "tag": "0005_add_document_user_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792919998991,
+      "tag": "0006_add_document_owner",
+      "breakpoints": true
     }
   ]
 }
