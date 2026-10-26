@@ -50,6 +50,13 @@
       "when": 1792919998991,
       "tag": "0006_add_document_owner",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792929951545,
+      "tag": "0007_create_workspaces",
+      "breakpoints": true
     }
   ]
 }
