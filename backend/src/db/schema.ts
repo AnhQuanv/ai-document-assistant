@@ -5,6 +5,7 @@ import {
   uuid,
   varchar,
   text,
+  index,
 } from 'drizzle-orm/pg-core';
 
 export const documents = pgTable('documents', {
@@ -31,6 +32,12 @@ export const documents = pgTable('documents', {
   userId: uuid('user_id')
     .notNull()
     .references(() => users.id, { onDelete: 'restrict' }),
+
+  workspaceId: uuid('workspace_id')
+    .notNull()
+    .references(() => workspaces.id, {
+      onDelete: 'restrict',
+    }),
 });
 
 export const users = pgTable('users', {
@@ -78,3 +85,26 @@ export const authSessions = pgTable('auth_sessions', {
     .notNull()
     .defaultNow(),
 });
+
+export const workspaces = pgTable(
+  'workspaces',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'restrict' }),
+    name: varchar('name', { length: 100 }).notNull(),
+    description: text('description'),
+    createdAt: timestamp('created_at', {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index('workspaces_user_id_idx').on(table.userId)],
+);

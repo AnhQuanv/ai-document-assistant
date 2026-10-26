@@ -3,6 +3,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsString,
+  IsUUID,
   Max,
   MaxLength,
   Min,
@@ -24,4 +25,7 @@ export class InitUploadDto {
   @Min(1)
   @Max(10 * 1024 * 1024)
   fileSize!: number;
+
+  @IsUUID('4')
+  workspaceId!: string;
 }

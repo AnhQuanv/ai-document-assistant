@@ -3,10 +3,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateDocumentDto } from './dto/create-document.dto.js';
 import { UpdateDocumentDto } from './dto/update-document.dto.js';
 import { DatabaseService } from '../db/database.service.js';
-import { documents } from '../db/schema.js';
+import { documents, workspaces } from '../db/schema.js';
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { StorageService } from '../storage/storage.service.js';
@@ -41,15 +40,6 @@ export class DocumentsService {
     return document;
   }
 
-  async create(data: CreateDocumentDto, userId: string) {
-    const result = await this.databaseService.db
-      .insert(documents)
-      .values({ title: data.title, status: 'pending', userId })
-      .returning();
-
-    return result[0];
-  }
-
   async update(id: string, data: UpdateDocumentDto, userId: string) {
     const [document] = await this.databaseService.db
       .update(documents)
@@ -67,13 +57,26 @@ export class DocumentsService {
     return document;
   }
 
-  async initUpload(data: InitUploadDto, userId: string) {
+  async initUpload(data: InitUploadDto, userId: string, workspaceId: string) {
+    const [workspace] = await this.databaseService.db
+      .select({ id: workspaces.id })
+      .from(workspaces)
+      .where(
+        and(eq(workspaces.id, workspaceId), eq(workspaces.userId, userId)),
+      );
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
     const extension = data.mimeType === 'application/pdf' ? '.pdf' : '.docx';
+
     if (!data.fileName.toLowerCase().endsWith(extension)) {
       throw new BadRequestException('File extension does not match MIME type');
     }
 
     const storageKey = `documents/${randomUUID()}${extension}`;
+
     const [document] = await this.databaseService.db
       .insert(documents)
       .values({
@@ -84,6 +87,7 @@ export class DocumentsService {
         mimeType: data.mimeType,
         fileSize: data.fileSize,
         userId,
+        workspaceId,
       })
       .returning();
 

@@ -6,20 +6,14 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseFilePipeBuilder,
   ParseUUIDPipe,
   Patch,
   Post,
   Req,
-  UploadedFile,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { DocumentsService } from './documents.service.js';
-import { CreateDocumentDto } from './dto/create-document.dto.js';
 import { UpdateDocumentDto } from './dto/update-document.dto.js';
-import { FileInterceptor } from '@nestjs/platform-express';
-import type {} from 'multer';
 import { InitUploadDto } from './dto/init-upload.dto.js';
 import { CompleteUploadDto } from './dto/complete-upload.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
@@ -40,14 +34,6 @@ export class DocumentsController {
     @Req() request: AuthenticatedRequest,
   ) {
     return this.documentsService.findById(id, request.user!.userId);
-  }
-
-  @Post()
-  create(
-    @Body() body: CreateDocumentDto,
-    @Req() request: AuthenticatedRequest,
-  ) {
-    return this.documentsService.create(body, request.user!.userId);
   }
 
   @Patch(':id')
@@ -72,7 +58,11 @@ export class DocumentsController {
     @Body() data: InitUploadDto,
     @Req() request: AuthenticatedRequest,
   ) {
-    return this.documentsService.initUpload(data, request.user!.userId);
+    return this.documentsService.initUpload(
+      data,
+      request.user!.userId,
+      data.workspaceId,
+    );
   }
 
   @Post('uploads/complete')
