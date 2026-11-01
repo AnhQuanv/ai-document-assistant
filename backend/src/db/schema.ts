@@ -13,7 +13,7 @@ export const documents = pgTable('documents', {
 
   title: varchar('title', { length: 255 }).notNull(),
 
-  status: varchar('status', { length: 255 }).notNull().default('uploaded'),
+  status: varchar('status', { length: 20 }).notNull().default('pending'),
 
   createdAt: timestamp('created_at', { withTimezone: true })
     .notNull()
@@ -28,6 +28,14 @@ export const documents = pgTable('documents', {
   }).unique(),
   mimeType: varchar('mime_type', { length: 100 }),
   fileSize: integer('file_size'),
+
+  extractedText: text('extracted_text'),
+
+  processingError: text('processing_error'),
+
+  processedAt: timestamp('processed_at', {
+    withTimezone: true,
+  }),
 
   userId: uuid('user_id')
     .notNull()

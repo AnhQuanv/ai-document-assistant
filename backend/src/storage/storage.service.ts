@@ -79,4 +79,22 @@ export class StorageService {
 
     await this.s3.send(command);
   }
+
+  async getObjectBuffer(key: string): Promise<Buffer> {
+    const res = await this.s3.send(
+      new GetObjectCommand({
+        Bucket: this.bucket,
+        Key: key,
+      }),
+    );
+    if (!res.Body) {
+      throw new Error('S3 object body is empty');
+    }
+
+    const bytes = await res.Body.transformToByteArray();
+
+    return Buffer.from(bytes);
+  }
+
+  
 }

@@ -18,10 +18,14 @@ import { InitUploadDto } from './dto/init-upload.dto.js';
 import { CompleteUploadDto } from './dto/complete-upload.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import type { AuthenticatedRequest } from '../auth/guards/jwt-auth.guard.js';
+import { DocumentProcessingService } from '../document-processing/document-processing.service.js';
 @UseGuards(JwtAuthGuard)
 @Controller('documents')
 export class DocumentsController {
-  constructor(private readonly documentsService: DocumentsService) {}
+  constructor(
+    private readonly documentsService: DocumentsService,
+    private readonly documentProcessingService: DocumentProcessingService,
+  ) {}
 
   @Get()
   findAll(@Req() request: AuthenticatedRequest) {
@@ -83,5 +87,18 @@ export class DocumentsController {
     @Req() request: AuthenticatedRequest,
   ) {
     return this.documentsService.getDownloadUrl(id, request.user!.userId);
+  }
+
+  @Post(':id/process')
+  @HttpCode(HttpStatus.OK)
+  processDocument(
+    @Param('id', new ParseUUIDPipe({ version: '4' }))
+    documentId: string,
+    @Req() request: AuthenticatedRequest,
+  ) {
+    return this.documentProcessingService.process(
+      documentId,
+      request.user!.userId,
+    );
   }
 }
