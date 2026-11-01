@@ -6,6 +6,7 @@ import {
   varchar,
   text,
   index,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 
 export const documents = pgTable('documents', {
@@ -115,4 +116,30 @@ export const workspaces = pgTable(
       .defaultNow(),
   },
   (table) => [index('workspaces_user_id_idx').on(table.userId)],
+);
+
+export const documentChunks = pgTable(
+  'document_chunks',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    documentId: uuid('document_id')
+      .notNull()
+      .references(() => documents.id, {
+        onDelete: 'cascade',
+      }),
+    chunkIndex: integer('chunk_index').notNull(),
+    content: text('content').notNull(),
+    createdAt: timestamp('created_at', {
+      withTimezone: true,
+    })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('document_chunks_document_id_idx').on(table.documentId),
+    uniqueIndex('document_chunks_document_index_unique').on(
+      table.documentId,
+      table.chunkIndex,
+    ),
+  ],
 );
