@@ -4,10 +4,15 @@ import { DocumentsService } from './documents.service.js';
 import { DatabaseModule } from '../db/database.module.js';
 import { StorageModule } from '../storage/storage.module.js';
 import { AuthModule } from '../auth/auth.module.js';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { DocumentProcessingModule } from '../document-processing/document-processing.module.js';
 
 @Module({
-  imports: [DatabaseModule, StorageModule, AuthModule],
+  imports: [
+    DatabaseModule,
+    StorageModule,
+    AuthModule,
+    DocumentProcessingModule,
+  ],
   controllers: [DocumentsController],
   providers: [DocumentsService],
 })
