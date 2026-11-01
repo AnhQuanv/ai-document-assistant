@@ -3,20 +3,24 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { DatabaseService } from '../db/database.service.js';
 import { StorageService } from '../storage/storage.service.js';
 import { DocumentTextExtractorService } from './document-text-extractor.service.js';
-import { documents } from '../db/schema.js';
+import { documentChunks, documents } from '../db/schema.js';
 import { and, eq, inArray } from 'drizzle-orm';
+import { DocumentChunkingService } from './document-chunking.service.js';
 
 @Injectable()
 export class DocumentProcessingService {
+  private readonly logger = new Logger(DocumentProcessingService.name);
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly storageService: StorageService,
     private readonly textExtractor: DocumentTextExtractorService,
+    private readonly documentChunkingService: DocumentChunkingService,
   ) {}
 
   async findDocumentForProcessing(documentId: string, userId: string) {
@@ -59,7 +63,6 @@ export class DocumentProcessingService {
   }
 
   async process(documentId: string, userId: string) {
-    // Bước 1: Tìm tài liệu và kiểm tra quyền sở hữu.
     const document = await this.findDocumentForProcessing(documentId, userId);
 
     if (
@@ -70,18 +73,15 @@ export class DocumentProcessingService {
       throw new ConflictException('Document metadata is incomplete');
     }
 
-    // Bước 2: Kiểm tra giới hạn dung lượng trước khi tải file.
     const MAX_FILE_SIZE = 10 * 1024 * 1024;
 
     if (document.fileSize > MAX_FILE_SIZE) {
       throw new BadRequestException('File exceeds 10 MB processing limit');
     }
 
-    // Bước 3: Claim Document để tránh hai request xử lý cùng lúc.
     await this.claimDocument(documentId, userId);
 
     try {
-      // Bước 4: Tải file từ SILO.
       const buffer = await this.storageService.getObjectBuffer(
         document.storageKey,
       );
@@ -90,7 +90,6 @@ export class DocumentProcessingService {
         throw new Error('Downloaded file exceeds size limit');
       }
 
-      // Bước 5: Trích xuất văn bản.
       const extractedText = await this.textExtractor.extract(
         buffer,
         document.mimeType,
@@ -100,40 +99,75 @@ export class DocumentProcessingService {
         throw new Error('No extractable text found');
       }
 
-      // Bước 6: Lưu kết quả vào PostgreSQL.
-      const [updated] = await this.databaseService.db
-        .update(documents)
-        .set({
-          status: 'completed',
-          extractedText,
-          processingError: null,
-          processedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(documents.id, documentId),
-            eq(documents.userId, userId),
-            eq(documents.status, 'processing'),
-          ),
-        )
-        .returning({ id: documents.id });
+      const chunks = this.documentChunkingService.splitText(
+        extractedText,
+        1000,
+        200,
+      );
 
-      if (!updated) {
-        throw new Error('Document state changed during processing');
+      if (chunks.length === 0) {
+        throw new Error('No chunks generated');
       }
-      return {
-        documentId,
-        status: 'completed',
-        textLength: extractedText.length,
-      };
+
+      const result = await this.databaseService.db.transaction(async (tx) => {
+        // Xóa chunks cũ nếu có từ lần xử lý trước
+        await tx
+          .delete(documentChunks)
+          .where(eq(documentChunks.documentId, documentId));
+
+        // Chuẩn bị dữ liệu để lưu
+        const chunkRecords = chunks.map((chunk) => ({
+          documentId,
+          chunkIndex: chunk.chunkIndex,
+          content: chunk.content,
+        }));
+
+        // Lưu toàn bộ chunks
+        await tx.insert(documentChunks).values(chunkRecords);
+
+        // Cập nhật document sau khi lưu chunks
+        const [updated] = await tx
+          .update(documents)
+          .set({
+            status: 'completed',
+            extractedText,
+            processingError: null,
+            processedAt: new Date(),
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(documents.id, documentId),
+              eq(documents.userId, userId),
+              eq(documents.status, 'processing'),
+            ),
+          )
+          .returning({ id: documents.id });
+
+        if (!updated) {
+          throw new Error('Document state changed during processing');
+        }
+
+        return {
+          documentId,
+          status: 'completed',
+          textLength: extractedText.length,
+          totalChunks: chunks.length,
+        };
+      });
+
+      return result;
     } catch (error) {
-      // Bước 7: Ghi trạng thái thất bại.
+      this.logger.error(
+        `Document processing failed: ${documentId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+
       await this.databaseService.db
         .update(documents)
         .set({
           status: 'failed',
-          processingError: 'Document extraction failed',
+          processingError: 'Document processing failed',
           processedAt: null,
           updatedAt: new Date(),
         })
